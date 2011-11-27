@@ -1,6 +1,6 @@
 Name:		javamail
 Version:	1.4.3
-Release:	6
+Release:	8
 Summary:	Java Mail API
 
 Group:		Development/Java
