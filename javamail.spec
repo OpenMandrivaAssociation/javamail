@@ -1,6 +1,6 @@
 Name:		javamail
 Version:	1.4.3
-Release:	8
+Release:	11
 Summary:	Java Mail API
 
 Group:		Development/Java
@@ -22,16 +22,18 @@ Source6:	http://download.java.net/maven/2/com/sun/mail/imap/%{version}/imap-%{ve
 Source7:	http://download.java.net/maven/2/com/sun/mail/pop3/%{version}/pop3-%{version}.pom
 Source8:	http://download.java.net/maven/2/com/sun/mail/smtp/%{version}/smtp-%{version}.pom
 
-# Parent POM for many of the above
 # http://kenai.com/projects/javamail/sources/mercurial/content/parent-distrib/pom.xml?raw=true
 Source9:	%{name}-parent-distrib.pom
 
+# Add additional OSGi information to manifest of mail.jar
+Patch0:		%{name}-add-osgi-info.patch
+
 # Remove Maven plugins we don't have yet
 # Remove unavailable-on-Fedora dependencies from pom.xml
-Patch0:		%{name}-cleanup-poms.patch
+Patch1:		%{name}-cleanup-poms.patch
 
 BuildRequires:	jpackage-utils
-BuildRequires:	maven2
+BuildRequires:	maven
 BuildRequires:	maven-assembly-plugin
 BuildRequires:	maven-compiler-plugin
 BuildRequires:	maven-dependency-plugin
@@ -42,18 +44,12 @@ BuildRequires:	maven-resources-plugin
 BuildRequires:	maven-site-plugin
 BuildRequires:	maven-plugin-bundle
 BuildRequires:	maven-surefire-plugin
-BuildRequires:  maven-surefire-provider-junit4
-BuildRequires:	tomcat6
+BuildRequires:	maven-surefire-provider-junit4
 BuildRequires:	tomcat6-jsp-2.1-api
 
-BuildRequires:	java-devel >= 0:1.6.0
+BuildRequires:	java-devel >= 1.6.0
 
 Requires:	jpackage-utils
-Requires(post):	jpackage-utils
-Requires(postun): jpackage-utils
-
-# Requirements from POMs
-Requires:	tomcat6-jsp-2.1-api
 
 # Adapted from the classpathx-mail (and JPackage glassfish-javamail) Provides
 Provides:	javamail-monolithic = 0:%{version}
@@ -81,6 +77,8 @@ mkdir -p mail dsn
 (cd mail && jar xvf %SOURCE1 && cp %SOURCE2 ./pom.xml)
 (cd dsn && jar xvf %SOURCE3 && cp %SOURCE4 ./pom.xml)
 
+%patch0 -p1
+
 for sub in *; do
 	pushd $sub
 	mkdir -p src/main/java src/main/resources
@@ -94,7 +92,7 @@ cp %SOURCE0 ./pom.xml
 mkdir poms
 cp %SOURCE5 %SOURCE6 %SOURCE7 %SOURCE8 %SOURCE9 poms
 
-%patch0 -p1
+%patch1 -p1
 
 # Convert license file to UTF-8
 for file in mail/src/main/resources/META-INF/*.txt; do
@@ -105,72 +103,51 @@ done
 
 
 %build
-export MAVEN_REPO_LOCAL=$(pwd)/.m2/repository
-mkdir -p $MAVEN_REPO_LOCAL
-
-mvn-jpp \
+mvn-rpmbuild \
+    -Dproject.build.sourceEncoding=UTF-8 \
 	-P deploy \
-	-Dmaven.repo.local=$MAVEN_REPO_LOCAL \
 	package javadoc:aggregate
 
 
 %install
-install -d -m 755 $RPM_BUILD_ROOT%{_javadir}/%{name}
-install -d -m 755 $RPM_BUILD_ROOT%{_mavenpomdir}
-install -d -m 755 p $RPM_BUILD_ROOT%{_javadocdir}/%{name}
+install -d -m 755 %{buildroot}%{_javadir}/%{name}
+install -d -m 755 %{buildroot}%{_mavenpomdir}
+install -d -m 755 p %{buildroot}%{_javadocdir}/%{name}
 
-install -pm 644 pom.xml $RPM_BUILD_ROOT/%{_mavenpomdir}/JPP.%{name}-all.pom
-%add_to_maven_depmap com.sun.mail all %{version} JPP/%{name} all
+install -pm 644 pom.xml %{buildroot}/%{_mavenpomdir}/JPP.%{name}-all.pom
+%add_maven_depmap JPP.%{name}-all.pom
 
 # Install everything
 for sub in mail dsn; do
-    install -m 644 $sub/target/$sub.jar $RPM_BUILD_ROOT%{_javadir}/%{name}/$sub.jar
+    install -m 644 $sub/target/$sub.jar %{buildroot}%{_javadir}/%{name}/$sub.jar
 done
 
-install -d -m 755 $RPM_BUILD_ROOT%{_javadocdir}/%{name}
-cp -pr target/site/apidocs/* $RPM_BUILD_ROOT%{_javadocdir}/%{name}
-install -m 644 mail/pom.xml $RPM_BUILD_ROOT/%{_mavenpomdir}/JPP.%{name}-mail.pom
-install -m 644 dsn/pom.xml $RPM_BUILD_ROOT/%{_mavenpomdir}/JPP.%{name}-dsn.pom
+install -d -m 755 %{buildroot}%{_javadocdir}/%{name}
+cp -pr target/site/apidocs/* %{buildroot}%{_javadocdir}/%{name}
+install -m 644 mail/pom.xml %{buildroot}/%{_mavenpomdir}/JPP.%{name}-mail.pom
+install -m 644 dsn/pom.xml %{buildroot}/%{_mavenpomdir}/JPP.%{name}-dsn.pom
 
 # Install the remaining POMs
 for sub in mailapi imap pop3 smtp; do
  install -m 644 poms/$sub-%{version}.pom \
-         $RPM_BUILD_ROOT/%{_mavenpomdir}/JPP.%{name}-$sub.pom
+	 %{buildroot}/%{_mavenpomdir}/JPP.%{name}-$sub.pom
 done
 
 # Add maven dependency information
-%add_to_maven_depmap javax.mail mail %{version} JPP/%{name} mail
-%add_to_maven_depmap com.sun.mail dsn %{version} JPP/%{name} dsn
-%add_to_maven_depmap javax.mail mailapi %{version} JPP/%{name} mail
-%add_to_maven_depmap com.sun.mail imap %{version} JPP/%{name} mail
-%add_to_maven_depmap com.sun.mail pop3 %{version} JPP/%{name} mail
-%add_to_maven_depmap com.sun.mail smtp %{version} JPP/%{name} mail
+%add_maven_depmap JPP.%{name}-mail.pom %{name}/mail.jar -a "javax.mail:mailapi,com.sun.mail:imap,com.sun.mail:pop3,com.sun.mail:smtp"
+%add_maven_depmap JPP.%{name}-dsn.pom %{name}/dsn.jar
 
 install -m 644 poms/%{name}-parent-distrib.pom \
-	$RPM_BUILD_ROOT/%{_mavenpomdir}/JPP.%{name}-parent-distrib.pom
-%add_to_maven_depmap com.sun.mail parent-distrib %{version} JPP/%{name} parent-distrib
+	%{buildroot}/%{_mavenpomdir}/JPP.%{name}-parent-distrib.pom
+%add_maven_depmap JPP.%{name}-parent-distrib.pom
 
-
-%post
-%update_maven_depmap
-
-%postun
-%update_maven_depmap
-
-%pre javadoc
-# workaround for rpm bug, can be removed in F-17
-[ $1 -gt 1 ] && [ -L %{_javadocdir}/%{name} ] && \
-rm -rf $(readlink -f %{_javadocdir}/%{name}) %{_javadocdir}/%{name} || :
 
 %files
-%defattr(-,root,root,-)
 %doc mail/src/main/resources/META-INF/LICENSE.txt mail/overview.html
 %{_javadir}/%{name}
-%config(noreplace) %{_mavendepmapfragdir}/*
+%{_mavendepmapfragdir}/*
 %{_mavenpomdir}/*.pom
 
 %files javadoc
-%defattr(-,root,root,-)
 %{_javadocdir}/%{name}
-
 
