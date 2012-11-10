@@ -1,0 +1,11 @@
+sources:
+  "all-1.4.3.pom:"	4c60db6b31817406e556fd3e2ac14ec1561c72a2
+  "dsn-1.4.3.pom:"	baf8bb5b73a992f584641815297678dd18afd352
+  "dsn-1.4.3-sources.jar:"	f32f7d39354067cffe42f8f7825bae3b07dcc1f1
+  "imap-1.4.3.pom:"	d7779f31b7880ea7b7fcbd75749cab7f3a00e548
+  "javamail-parent-distrib.pom:"	9aa0b74a82837497eca3b1a02e40e1cb28ac86f4
+  "mail-1.4.3.pom:"	ad5eac91961b0097e04a7072867ace7670bfb30b
+  "mail-1.4.3-sources.jar:"	5875e2729de83a4e46391f8f979ec8bd03810c10
+  "mailapi-1.4.3.pom:"	d9c3f7ba7a1b3cb412a342d80b3c4325594b8533
+  "pop3-1.4.3.pom:"	773e5d29d196e85ef4de92413b51104535e98c95
+  "smtp-1.4.3.pom:"	9565f4f6e69f3155b2e86062e644c0a85b7be8fb
