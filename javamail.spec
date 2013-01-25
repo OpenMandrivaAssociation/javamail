@@ -1,6 +1,6 @@
 Name:		javamail
 Version:	1.4.3
-Release:	11
+Release:	12
 Summary:	Java Mail API
 
 Group:		Development/Java
@@ -25,6 +25,9 @@ Source8:	http://download.java.net/maven/2/com/sun/mail/smtp/%{version}/smtp-%{ve
 # http://kenai.com/projects/javamail/sources/mercurial/content/parent-distrib/pom.xml?raw=true
 Source9:	%{name}-parent-distrib.pom
 
+# Maven dependency map bits
+Source10:	javamail.fragment
+
 # Add additional OSGi information to manifest of mail.jar
 Patch0:		%{name}-add-osgi-info.patch
 
@@ -33,20 +36,6 @@ Patch0:		%{name}-add-osgi-info.patch
 Patch1:		%{name}-cleanup-poms.patch
 
 BuildRequires:	jpackage-utils
-BuildRequires:	maven
-BuildRequires:	maven-assembly-plugin
-BuildRequires:	maven-compiler-plugin
-BuildRequires:	maven-dependency-plugin
-BuildRequires:	maven-install-plugin
-BuildRequires:	maven-jar-plugin
-BuildRequires:	maven-javadoc-plugin
-BuildRequires:	maven-resources-plugin
-BuildRequires:	maven-site-plugin
-BuildRequires:	maven-plugin-bundle
-BuildRequires:	maven-surefire-plugin
-BuildRequires:	maven-surefire-provider-junit4
-BuildRequires:	tomcat6-jsp-2.1-api
-
 BuildRequires:	java-1.6.0-openjdk-devel
 
 Requires:	jpackage-utils
@@ -104,11 +93,29 @@ done
 
 %build
 export JAVA_HOME=%_prefix/lib/jvm/java-1.6.0
-mvn-rpmbuild \
-    -Dproject.build.sourceEncoding=UTF-8 \
-	-P deploy \
-	package javadoc:aggregate
-
+# We build stuff manually because we don't want a circular build dependency.
+# Can't build a full-featured version of ant without javamail
+PACKAGES=""
+for sub in mail dsn; do
+	mkdir -p $sub/target/javadoc
+	cd $sub/src/main/java
+	for i in `find . -type d |sed -e 's,\./,,;s,/,.,g;s,META-INF,,'`; do
+		[ "$i" = "." ] && continue
+		[ "$i" = "com" ] && continue
+		[ "$i" = "javax" ] && continue
+		PACKAGES="$PACKAGES $i"
+	done
+	cp -a ../resources/META-INF .
+	find . -name "*.java" |xargs $JAVA_HOME/bin/javac
+	find . -name "*.class" |xargs $JAVA_HOME/bin/jar cf ../../../target/$sub.jar META-INF
+	export CLASSPATH=$CLASSPATH:`pwd`/../../../target/$sub.jar
+	cd ../../../..
+done
+mkdir doc
+cd doc
+cp -a ../mail/src/main/java/* .
+cp -a ../dsn/src/main/java/com/sun/mail/* com/sun/mail/
+javadoc -d ../target/javadoc $PACKAGES
 
 %install
 install -d -m 755 %{buildroot}%{_javadir}/%{name}
@@ -116,15 +123,14 @@ install -d -m 755 %{buildroot}%{_mavenpomdir}
 install -d -m 755 p %{buildroot}%{_javadocdir}/%{name}
 
 install -pm 644 pom.xml %{buildroot}/%{_mavenpomdir}/JPP.%{name}-all.pom
-%add_maven_depmap JPP.%{name}-all.pom
 
 # Install everything
 for sub in mail dsn; do
-    install -m 644 $sub/target/$sub.jar %{buildroot}%{_javadir}/%{name}/$sub.jar
+	install -m 644 $sub/target/$sub.jar %{buildroot}%{_javadir}/%{name}/$sub.jar
 done
+cp -pr target/javadoc/* %{buildroot}%{_javadocdir}/%{name}
 
 install -d -m 755 %{buildroot}%{_javadocdir}/%{name}
-cp -pr target/site/apidocs/* %{buildroot}%{_javadocdir}/%{name}
 install -m 644 mail/pom.xml %{buildroot}/%{_mavenpomdir}/JPP.%{name}-mail.pom
 install -m 644 dsn/pom.xml %{buildroot}/%{_mavenpomdir}/JPP.%{name}-dsn.pom
 
@@ -134,14 +140,11 @@ for sub in mailapi imap pop3 smtp; do
 	 %{buildroot}/%{_mavenpomdir}/JPP.%{name}-$sub.pom
 done
 
-# Add maven dependency information
-%add_maven_depmap JPP.%{name}-mail.pom %{name}/mail.jar -a "javax.mail:mailapi,com.sun.mail:imap,com.sun.mail:pop3,com.sun.mail:smtp"
-%add_maven_depmap JPP.%{name}-dsn.pom %{name}/dsn.jar
-
 install -m 644 poms/%{name}-parent-distrib.pom \
 	%{buildroot}/%{_mavenpomdir}/JPP.%{name}-parent-distrib.pom
-%add_maven_depmap JPP.%{name}-parent-distrib.pom
 
+mkdir -p %buildroot%_mavendepmapfragdir
+cp %SOURCE10 %buildroot%_mavendepmapfragdir/%name
 
 %files
 %doc mail/src/main/resources/META-INF/LICENSE.txt mail/overview.html
