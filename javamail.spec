@@ -47,7 +47,7 @@ BuildRequires:	maven-surefire-plugin
 BuildRequires:	maven-surefire-provider-junit4
 BuildRequires:	tomcat6-jsp-2.1-api
 
-BuildRequires:	java-devel >= 1.6.0
+BuildRequires:	java-1.6.0-openjdk-devel
 
 Requires:	jpackage-utils
 
@@ -103,6 +103,7 @@ done
 
 
 %build
+export JAVA_HOME=%_prefix/lib/jvm/java-1.6.0
 mvn-rpmbuild \
     -Dproject.build.sourceEncoding=UTF-8 \
 	-P deploy \
