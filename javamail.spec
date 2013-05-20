@@ -1,54 +1,42 @@
+Summary:	Java Mail API
 Name:		javamail
 Version:	1.4.3
 Release:	12
-Summary:	Java Mail API
-
 Group:		Development/Java
 License:	CDDL or GPLv2 with exceptions
-URL:		http://java.sun.com/products/javamail/
-
+Url:		http://java.sun.com/products/javamail/
 # Parent POM
 Source0:	http://download.java.net/maven/2/com/sun/mail/all/%{version}/all-%{version}.pom
-
 # POMs and source files for things that get built
 Source1:	http://download.java.net/maven/2/javax/mail/mail/%{version}/mail-%{version}-sources.jar
 Source2:	http://download.java.net/maven/2/javax/mail/mail/%{version}/mail-%{version}.pom
 Source3:	http://download.java.net/maven/2/com/sun/mail/dsn/%{version}/dsn-%{version}-sources.jar
 Source4:	http://download.java.net/maven/2/com/sun/mail/dsn/%{version}/dsn-%{version}.pom
-
 # Additional POMs for things that are provided by the monolithic mail.jar
 Source5:	http://download.java.net/maven/2/javax/mail/mailapi/%{version}/mailapi-%{version}.pom
 Source6:	http://download.java.net/maven/2/com/sun/mail/imap/%{version}/imap-%{version}.pom
 Source7:	http://download.java.net/maven/2/com/sun/mail/pop3/%{version}/pop3-%{version}.pom
 Source8:	http://download.java.net/maven/2/com/sun/mail/smtp/%{version}/smtp-%{version}.pom
-
 # http://kenai.com/projects/javamail/sources/mercurial/content/parent-distrib/pom.xml?raw=true
 Source9:	%{name}-parent-distrib.pom
-
 # Maven dependency map bits
 Source10:	javamail.fragment
-
 # Add additional OSGi information to manifest of mail.jar
-Patch0:		%{name}-add-osgi-info.patch
-
+Patch0:	%{name}-add-osgi-info.patch
 # Remove Maven plugins we don't have yet
 # Remove unavailable-on-Fedora dependencies from pom.xml
-Patch1:		%{name}-cleanup-poms.patch
+Patch1:	%{name}-cleanup-poms.patch
+BuildArch:	noarch
 
 BuildRequires:	jpackage-utils
 BuildRequires:	java-1.6.0-openjdk-devel
-
 Requires:	jpackage-utils
-
 # Adapted from the classpathx-mail (and JPackage glassfish-javamail) Provides
 Provides:	javamail-monolithic = 0:%{version}
-
-BuildArch:	noarch
 
 %description
 The JavaMail API provides a platform-independent and protocol-independent
 framework to build mail and messaging applications.
-
 
 %package javadoc
 Summary:	Javadoc for %{name}
@@ -57,7 +45,6 @@ Requires:	jpackage-utils >= 0:1.7.5
 
 %description javadoc
 %{summary}.
-
 
 %prep
 %setup -c -T
@@ -143,8 +130,8 @@ done
 install -m 644 poms/%{name}-parent-distrib.pom \
 	%{buildroot}/%{_mavenpomdir}/JPP.%{name}-parent-distrib.pom
 
-mkdir -p %buildroot%_mavendepmapfragdir
-cp %SOURCE10 %buildroot%_mavendepmapfragdir/%name
+mkdir -p %{buildroot}%_mavendepmapfragdir
+cp %SOURCE10 %{buildroot}%_mavendepmapfragdir/%{name}
 
 %files
 %doc mail/src/main/resources/META-INF/LICENSE.txt mail/overview.html
