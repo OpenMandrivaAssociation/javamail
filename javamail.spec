@@ -1,7 +1,7 @@
 Summary:	Java Mail API
 Name:		javamail
 Version:	1.4.3
-Release:	12
+Release:	13
 Group:		Development/Java
 License:	CDDL or GPLv2 with exceptions
 Url:		http://java.sun.com/products/javamail/
