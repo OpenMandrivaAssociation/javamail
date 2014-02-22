@@ -68,7 +68,7 @@ add_dep javax.mail mailapijar
 %mvn_file "com.sun.mail:{javax.mail}" %{name}/@1 %{name}/mail
 
 %build
-%mvn_build
+%mvn_build -- -Dmaven.test.skip=true
 
 %install
 %mvn_install
