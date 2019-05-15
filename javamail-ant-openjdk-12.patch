@@ -1,0 +1,95 @@
+diff -up javamail-JAVAMAIL-1_6_2/build.properties.omv~ javamail-JAVAMAIL-1_6_2/build.properties
+--- javamail-JAVAMAIL-1_6_2/build.properties.omv~	2019-05-12 23:43:00.349077761 +0200
++++ javamail-JAVAMAIL-1_6_2/build.properties	2019-05-12 23:43:18.558906959 +0200
+@@ -125,8 +125,8 @@ glassfish.maven_repository_importer.vers
+ javac.debug=on
+ javac.optimize=off
+ javac.deprecation=off
+-javac.source=1.5
+-javac.target=1.5
++javac.source=12
++javac.target=12
+ 
+ ### Use ant.verbose=-verbose for debugging ant targets
+ ant.verbose=
+diff -up javamail-JAVAMAIL-1_6_2/build.xml.omv~ javamail-JAVAMAIL-1_6_2/build.xml
+--- javamail-JAVAMAIL-1_6_2/build.xml.omv~	2019-05-12 23:42:34.783317424 +0200
++++ javamail-JAVAMAIL-1_6_2/build.xml	2019-05-12 23:51:36.216216520 +0200
+@@ -107,9 +107,7 @@
+                failonerror="true"
+                target="${javac.target}"
+ 	       includeantruntime="false">
+-            <classpath>
+-                <pathelement location="${activation.jar}"/>
+-            </classpath>
++            <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
+             <include name="javax/mail/**"/>
+             <include name="com/sun/mail/**"/>
+         </javac>
+@@ -213,9 +211,9 @@
+                failonerror="true"
+                target="${javac.target}"
+ 	       includeantruntime="false">
++            <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
+             <classpath>
+                 <pathelement location="${component.classes.dir}"/>
+-                <pathelement location="${activation.jar}"/>
+             </classpath>
+             <include name="com/sun/mail/gimap/**"/>
+         </javac>
+@@ -235,9 +233,9 @@
+                failonerror="true"
+                target="${javac.target}"
+ 	       includeantruntime="false">
++            <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
+             <classpath>
+                 <pathelement location="${component.classes.dir}"/>
+-                <pathelement location="${activation.jar}"/>
+             </classpath>
+             <include name="com/sun/mail/dsn/**"/>
+         </javac>
+@@ -257,9 +255,9 @@
+                failonerror="true"
+                target="${javac.target}"
+ 	       includeantruntime="false">
++            <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
+             <classpath>
+                 <pathelement location="${component.classes.dir}"/>
+-                <pathelement location="${activation.jar}"/>
+             </classpath>
+             <include name="*"/>
+         </javac>
+@@ -274,9 +272,9 @@
+                failonerror="true"
+                target="${javac.target}"
+ 	       includeantruntime="false">
++            <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
+             <classpath>
+                 <pathelement location="${component.classes.dir}"/>
+-                <pathelement location="${activation.jar}"/>
+             </classpath>
+             <include name="*"/>
+         </javac>
+@@ -291,9 +289,9 @@
+                failonerror="true"
+                target="${javac.target}"
+ 	       includeantruntime="false">
++            <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
+             <classpath>
+                 <pathelement location="${component.classes.dir}"/>
+-                <pathelement location="${activation.jar}"/>
+                 <pathelement location="${javaee.jar}"/>
+             </classpath>
+             <include name="*"/>
+@@ -309,10 +307,10 @@
+                failonerror="true"
+                target="${javac.target}"
+ 	       includeantruntime="false">
++            <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
+             <classpath>
+                 <pathelement location="${component.classes.dir}"/>
+                 <pathelement location="${component.classes.demo.dir}"/>
+-                <pathelement location="${activation.jar}"/>
+             </classpath>
+             <include name="*"/>
+         </javac>

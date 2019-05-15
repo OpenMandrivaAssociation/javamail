@@ -1,0 +1,12 @@
+diff -up javamail-JAVAMAIL-1_6_2/build.xml.omv~ javamail-JAVAMAIL-1_6_2/build.xml
+--- javamail-JAVAMAIL-1_6_2/build.xml.omv~	2019-05-15 16:26:08.473209713 +0200
++++ javamail-JAVAMAIL-1_6_2/build.xml	2019-05-15 16:39:08.968575218 +0200
+@@ -211,7 +211,7 @@
+                failonerror="true"
+                target="${javac.target}"
+ 	       includeantruntime="false">
+-            <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
++	<compilerarg line="-p /usr/share/java/modules:./target/release --add-modules java.activation,java.mail" />
+             <classpath>
+                 <pathelement location="${component.classes.dir}"/>
+             </classpath>

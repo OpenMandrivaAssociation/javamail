@@ -1,29 +1,22 @@
-%{?_javapackages_macros:%_javapackages_macros}
+%define uversion %(echo %{version} |sed -e 's,\\.,_,g')
+
 Name:           javamail
-Version:        1.5.0
-Release:        6.1%{?dist}
+Version:        1.6.2
+Release:        1
 Summary:        Java Mail API
 License:        CDDL or GPLv2 with exceptions
-URL:            http://www.oracle.com/technetwork/java/javamail
+URL:            https://javaee.github.io/javamail/
 BuildArch:      noarch
 
-# hg clone http://kenai.com/hg/javamail~mercurial
-# (cd ./javamail~mercurial && hg archive -r JAVAMAIL-%(sed s/\\./_/g <<<"%{version}") ../%{name}-%{version})
-# tar caf %{name}-%{version}.tar.xz %{name}-%{version}
-Source:         %{name}-%{version}.tar.xz
+Source0:        https://github.com/javaee/javamail/archive/JAVAMAIL-%{uversion}.tar.gz
+Patch0:		javamail-ant-openjdk-12.patch
+Patch1:		javamail-1.6.2-gimap-compile.patch
+Patch2:		javamail-1.6.2-ant-modular.patch
 
-BuildRequires:  maven-local
-BuildRequires:  jvnet-parent
-BuildRequires:  maven-assembly-plugin
-BuildRequires:  maven-dependency-plugin
-BuildRequires:  maven-resources-plugin
-BuildRequires:  maven-plugin-bundle
-BuildRequires:  maven-plugin-build-helper
-
-# Adapted from the classpathx-mail (and JPackage glassfish-javamail) Provides.
-Provides:       javamail-monolithic = %{version}-%{release}
-
-Provides:       javax.mail
+BuildRequires:	jdk-current
+BuildRequires:	javapackages-local
+BuildRequires:	javax.activation
+BuildRequires:	ant
 
 %description
 The JavaMail API provides a platform-independent and protocol-independent
@@ -38,127 +31,85 @@ Summary:        Javadoc for %{name}
 
 
 %prep
-%setup -q
+%autosetup -p1 -n javamail-JAVAMAIL-%{uversion}
 
-add_dep() {
-    %pom_xpath_inject pom:project "<dependencies/>" ${2}
-    %pom_add_dep com.sun.mail:${1}:%{version}:provided ${2}
+if [ -e dsn/src/main/java/module-info.java ]; then
+	echo "Lack of module-info in DSN module has been fixed upstream."
+	echo "Please remove the workaround."
+	exit 1
+fi
+cat >dsn/src/main/java/module-info.java <<EOF
+module com.sun.mail.dsn {
+	exports com.sun.mail.dsn;
+	requires java.mail;
+	requires java.logging;
+	requires java.desktop;
 }
-
-add_dep smtp mailapi
-add_dep javax.mail smtp
-add_dep javax.mail pop3
-add_dep javax.mail imap
-add_dep javax.mail mailapijar
-
-# Remove profiles containing demos and other stuff that is not
-# supposed to be deployable.
-%pom_xpath_remove /pom:project/pom:profiles
-
-# osgiversion-maven-plugin is used to set ${mail.osgiversion} property
-# based on ${project.version}. We don't have osgiversion plugin in
-# Fedora so we'll set ${mail.osgiversion} explicitly.
-%pom_remove_plugin org.glassfish.hk2:osgiversion-maven-plugin
-%pom_xpath_inject /pom:project/pom:properties "<mail.osgiversion>%{version}</mail.osgiversion>"
-
-# Alternative names for super JAR containing API and implementation.
-%mvn_alias com.sun.mail:mailapi javax.mail:mailapi
-%mvn_alias com.sun.mail:javax.mail javax.mail:mail \
-           org.eclipse.jetty.orbit:javax.mail.glassfish
-%mvn_file "com.sun.mail:{javax.mail}" %{name}/@1 %{name}/mail
+EOF
 
 %build
-%mvn_build -- -Dmaven.test.skip=true
+# Unfortunately, the ant build files are hopelessly outdated to the point
+# of being unusable (incorrect module handling) and we can't use maven because
+# we don't like circular dependencies -- so we have to do things manually
+
+. /etc/profile.d/90java.sh
+
+mkdir out
+
+cd mail/src/main/java
+cp ../../../../mailapi/src/main/java/module-info.java .
+cp ../resources/javax/mail/*.java javax/mail/
+find javax com/sun/mail/util com/sun/mail/auth com/sun/mail/handlers -name "*.java" |xargs javac -d ../../../../out/mailapi -p %{_javadir}/modules module-info.java
+javadoc -d ../../../../out/doc-java.mail com.sun.mail.util com.sun.mail.auth com.sun.mail.handlers -p %{_javadir}/modules --add-modules=java.activation -html4
+cd ../../../../out/mailapi
+cp -a ../../mail/src/main/resources/META-INF .
+jar cf ../java.mail-%{version}.jar module-info.class javax com/sun/mail/util com/sun/mail/auth com/sun/mail/handlers META-INF
+cd ../..
+cp pom.xml out/java.mail-%{version}.pom
+
+for i in imap smtp pop3; do
+	EXTRAS=""
+	[ "$i" = "imap" ] && EXTRAS=com/sun/mail/iap
+	cd mail/src/main/java
+	cp -f ../../../../$i/src/main/java/module-info.java .
+	find com/sun/mail/$i $EXTRAS -name "*.java" |xargs javac -d ../../../../out/$i -p %{_javadir}/modules:../../../../out module-info.java
+	javadoc -d ../../../../out/doc-$i com.sun.mail.$i $(echo $EXTRAS |sed -e 's,/,.,g') -p %{_javadir}/modules:../../../../out --add-modules=java.activation,java.mail -html4
+	cd ../../../../out/$i
+	jar cf ../$i-%{version}.jar .
+	cd ../..
+	cp $i/pom.xml out/$i-%{version}.pom
+done
+
+for i in dsn gimap; do
+	cd $i/src/main/java
+	find . -name "*.java" |xargs javac -d ../../../../out/$i -p %{_javadir}/modules:../../../../out
+	cd ../../../../out/$i
+	jar cf ../$i-%{version}.jar .
+	cd ../..
+	cp $i/pom.xml out/$i-%{version}.pom
+done
+
+for i in out/*.jar; do
+	jar i $i
+done
+
 
 %install
-%mvn_install
+mkdir -p %{buildroot}%{_javadir}/modules %{buildroot}%{_mavenpomdir} %{buildroot}%{_javadocdir}
+cp out/*.jar %{buildroot}%{_javadir}/modules/
+for i in java.mail imap smtp pop3 dsn gimap; do
+	ln -s modules/$i-%{version}.jar %{buildroot}%{_javadir}/
+	ln -s modules/$i-%{version}.jar %{buildroot}%{_javadir}/$i.jar
+	cp out/$i-%{version}.pom %{buildroot}%{_mavenpomdir}/
+	[ -d out/doc-$i ] && cp -a out/doc-$i %{buildroot}%{_javadocdir}/$i
+	%add_maven_depmap $i-%{version}.pom $i-%{version}.jar
+done
 
-install -d -m 755 %{buildroot}%{_javadir}/javax.mail/
-ln -sf ../%{name}/javax.mail.jar %{buildroot}%{_javadir}/javax.mail/
+%files
+%{_javadir}/*.jar
+%{_javadir}/modules/*.jar
+%{_mavenpomdir}/*
+%{_datadir}/maven-metadata/*.xml
 
-%files -f .mfiles
-%doc mail/src/main/java/overview.html
-%doc mail/src/main/resources/META-INF/LICENSE.txt
-%{_javadir}/javax.mail/
-
-%files javadoc -f .mfiles-javadoc
-%doc mail/src/main/resources/META-INF/LICENSE.txt
-
-%changelog
-* Mon Aug 12 2013 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.5.0-6
-- Add forgotten provides
-
-* Mon Aug 12 2013 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.5.0-5
-- Add javax.mail provides and directory
-
-* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.5.0-4
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
-
-* Fri Jun 28 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.5.0-3
-- Add compat symlink for javax.mail:mail
-
-* Mon Jun 24 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.5.0-2
-- Add Maven alias for javax.mail:mail
-
-* Mon Jun 24 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.5.0-1
-- Update to upstream version 1.5.0
-
-* Thu Mar  7 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.4.6-1
-- Update to upstream version 1.4.6
-
-* Mon Mar  4 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.4.3-16
-- Add depmap for org.eclipse.jetty.orbit
-- Resolves: rhbz#917624
-
-* Thu Feb 14 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.4.3-15
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
-
-* Wed Feb 06 2013 Java SIG <java-devel@lists.fedoraproject.org> - 1.4.3-14
-- Update for https://fedoraproject.org/wiki/Fedora_19_Maven_Rebuild
-- Replace maven BuildRequires with maven-local
-
-* Thu Oct 11 2012 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.4.3-13
-- Fix URL
-
-* Thu Jul 19 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.4.3-12
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
-
-* Mon Jun 11 2012 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.4.3-11
-- Update OSGi manifest patch
-
-* Tue May 29 2012 Gerard Ryan <galileo@fedoraproject.org> - 1.4.3-10
-- Add extra information to OSGi manifest
-- Fix rpmlint error about mavendepmapfragdir
-
-* Wed Mar 21 2012 Alexander Kurtakov <akurtako@redhat.com> 1.4.3-9
-- Drop tomcat6-jsp-api requires - it's dependency management not dependency, hence not needed.
-
-* Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.4.3-8
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
-
-* Tue Nov 29 2011 Alexander Kurtakov <akurtako@redhat.com> 1.4.3-7
-- Build with maven3.
-- Adapt to current guidelines.
-
-* Wed Feb 09 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.4.3-6
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
-
-* Wed Dec  8 2010 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.4.3-5
-- Fix pom filenames (#655806)
-- Versionless jars/javadocs (new guidelines)
-- Migrate to tomcat6 (#652004)
-- Other cleanups
-
-* Wed Sep 8 2010 Alexander Kurtakov <akurtako@redhat.com> 1.4.3-4
-- Add surefire provider BR.
-
-* Wed Sep 8 2010 Alexander Kurtakov <akurtako@redhat.com> 1.4.3-3
-- Drop gcj_support.
-- Use javadoc:aggregate.
-
-* Fri Jan  8 2010 Mary Ellen Foster <mefoster at gmail.com> 1.4.3-2
-- Remove unnecessary (build)requirement tomcat5-servlet-2.4-api
-- Move jar files into subdirectory
-
-* Wed Dec  2 2009 Mary Ellen Foster <mefoster at gmail.com> 1.4.3-1
-- Initial package
+%files javadoc
+%{_javadocdir}/*

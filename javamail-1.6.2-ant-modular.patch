@@ -1,0 +1,67 @@
+diff -up javamail-JAVAMAIL-1_6_2/build.xml.3~ javamail-JAVAMAIL-1_6_2/build.xml
+--- javamail-JAVAMAIL-1_6_2/build.xml.3~	2019-05-15 17:00:11.764832248 +0200
++++ javamail-JAVAMAIL-1_6_2/build.xml	2019-05-15 17:03:42.078069980 +0200
+@@ -108,6 +108,7 @@
+                target="${javac.target}"
+ 	       includeantruntime="false">
+             <compilerarg line="-p /usr/share/java/modules --add-modules java.activation" />
++            <include name="module-info.java"/>
+             <include name="javax/mail/**"/>
+             <include name="com/sun/mail/**"/>
+         </javac>
+@@ -384,6 +385,7 @@
+             <metainf dir="${resources.dir}/META-INF"
+                     includes="javamail.charset.map,javamail.default.*,mailcap"/>
+             <fileset dir="${component.classes.dir}">
++                <include name="module-info.class"/>
+                 <include name="javax/mail/**/*.class"/>
+                 <include name="com/sun/mail/**/*.class"/>
+             </fileset>
+@@ -409,6 +411,7 @@
+             <metainf dir="${resources.imap.dir}/META-INF"
+ 		    includes="javamail.providers"/>
+             <fileset dir="${component.classes.dir}">
++                <include name="module-info.class"/>
+                 <include name="com/sun/mail/iap/*.class"/>
+                 <include name="com/sun/mail/imap/*.class"/>
+                 <include name="com/sun/mail/imap/protocol/*.class"/>
+@@ -425,6 +428,7 @@
+             <metainf dir="${resources.pop3.dir}/META-INF"
+ 		    includes="javamail.providers"/>
+             <fileset dir="${component.classes.dir}">
++                <include name="module-info.class"/>
+                 <include name="com/sun/mail/pop3/*.class"/>
+             </fileset>
+         </jar>
+@@ -439,6 +443,7 @@
+             <metainf dir="${resources.smtp.dir}/META-INF"
+ 		    includes="javamail.providers,javamail.address.map"/>
+             <fileset dir="${component.classes.dir}">
++                <include name="module-info.class"/>
+                 <include name="com/sun/mail/smtp/*.class"/>
+             </fileset>
+         </jar>
+@@ -453,6 +458,7 @@
+             <metainf dir="${resources.gimap.dir}/META-INF"
+ 		    includes="mailcap"/>
+             <fileset dir="${component.classes.gimap.dir}">
++                <include name="module-info.class"/>
+                 <include name="com/sun/mail/gimap/*.class"/>
+             </fileset>
+         </jar>
+@@ -467,6 +473,7 @@
+             <metainf dir="${resources.dsn.dir}/META-INF"
+ 		    includes="mailcap"/>
+             <fileset dir="${component.classes.dsn.dir}">
++                <include name="module-info.class"/>
+                 <include name="com/sun/mail/dsn/*.class"/>
+             </fileset>
+         </jar>
+@@ -481,6 +488,7 @@
+             <metainf dir="${resources.dir}/META-INF"
+ 		    includes="javamail.charset.map, mailcap"/>
+             <fileset dir="${component.classes.dir}">
++                <include name="module-info.class"/>
+                 <include name="javax/mail/**/*.class"/>
+                 <include name="com/sun/mail/util/*.class"/>
+                 <include name="com/sun/mail/handlers/*.class"/>
