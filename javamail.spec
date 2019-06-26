@@ -1,7 +1,7 @@
 %define uversion %(echo %{version} |sed -e 's,\\.,_,g')
 
 Name:           javamail
-Version:        1.6.2
+Version:	1_6_2
 Release:        1
 Summary:        Java Mail API
 License:        CDDL or GPLv2 with exceptions
