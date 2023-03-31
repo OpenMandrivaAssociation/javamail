@@ -2,7 +2,7 @@
 
 Name:           javamail
 Version:	1_6_2
-Release:        1
+Release:        2
 Summary:        Java Mail API
 License:        CDDL or GPLv2 with exceptions
 URL:            https://javaee.github.io/javamail/
